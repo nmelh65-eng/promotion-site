@@ -2,16 +2,6 @@ export type Language = "ru" | "en";
 
 export type WorkCategory = "poetry" | "prose";
 
-export type LinkKind =
-  | "social"
-  | "platform"
-  | "referral"
-  | "support"
-  | "music"
-  | "video"
-  | "book"
-  | "store";
-
 export interface SeoFields {
   title?: string;
   description?: string;
@@ -55,23 +45,6 @@ export interface SocialLink {
   icon?: string;
   isActive: boolean;
   sortOrder: number;
-}
-
-export interface PlatformLink {
-  id: string;
-  title: string;
-  description?: string;
-  href: string;
-  kind: LinkKind;
-  icon?: string;
-  image?: string;
-  buttonLabel?: string;
-  badge?: string;
-  tags?: string[];
-  isActive: boolean;
-  isFeatured?: boolean;
-  sortOrder: number;
-  clicks: number;
 }
 
 export interface ReferralLink {
