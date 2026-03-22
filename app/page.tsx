@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { socialLinks } from "@/data/social-links";
 import { referrals } from "@/data/referrals";
-import { getWorksByCategory } from "@/lib/works-store";
+import { getWorksByCategoryLive } from "@/lib/works-store";
 import PoemCard from "@/components/PoemCard";
 import ProseCard from "@/components/ProseCard";
 
-export default function HomePage() {
-  const latestPoetry = getWorksByCategory("poetry").slice(0, 2);
-  const latestProse = getWorksByCategory("prose").slice(0, 1);
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [poetry, prose] = await Promise.all([
+    getWorksByCategoryLive("poetry"),
+    getWorksByCategoryLive("prose"),
+  ]);
+
+  const latestPoetry = poetry.slice(0, 2);
+  const latestProse = prose.slice(0, 1);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16">

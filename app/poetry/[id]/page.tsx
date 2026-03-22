@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
-import { getWorkById } from "@/lib/works-store";
+import { getWorkByIdLive } from "@/lib/works-store";
 import WorkStats from "@/components/WorkStats";
+
+export const dynamic = "force-dynamic";
 
 export default async function PoetryItemPage({
   params,
@@ -8,7 +10,7 @@ export default async function PoetryItemPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const work = getWorkById(id);
+  const work = await getWorkByIdLive(id);
 
   if (!work || work.category !== "poetry") {
     notFound();
