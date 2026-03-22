@@ -12,6 +12,8 @@ export type LinkKind =
   | "book"
   | "store";
 
+export type AnalyticsTargetType = "social" | "platform" | "referral";
+
 export interface SeoFields {
   title?: string;
   description?: string;
@@ -84,6 +86,28 @@ export interface ReferralLink {
   isFeatured?: boolean;
   sortOrder: number;
   clicks: number;
+}
+
+export interface AnalyticsSummary {
+  totalClicks: number;
+  totalSocialClicks: number;
+  totalPlatformClicks: number;
+  totalReferralClicks: number;
+  topSocialLinks: Array<{
+    id: string;
+    label: string;
+    clicks: number;
+  }>;
+  topPlatforms: Array<{
+    id: string;
+    title: string;
+    clicks: number;
+  }>;
+  topReferrals: Array<{
+    id: string;
+    title: string;
+    clicks: number;
+  }>;
 }
 
 export interface ApiSuccess<T> {
