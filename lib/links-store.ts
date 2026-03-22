@@ -123,6 +123,25 @@ function buildId(prefix: string, source: string, index: number): string {
   return slug ? `${prefix}-${slug}` : `${prefix}-${Date.now()}-${index + 1}`;
 }
 
+function toObjectRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
+function omitKeys(
+  value: Record<string, unknown>,
+  keys: string[]
+): Record<string, unknown> {
+  const next = { ...value };
+
+  for (const key of keys) {
+    delete next[key];
+  }
+
+  return next;
+}
+
 async function readCollection<K extends LinkCollectionType>(
   type: K
 ): Promise<LinkCollections[K]> {
@@ -172,8 +191,16 @@ async function writeCollection<K extends LinkCollectionType>(
 function normalizeSocialItems(input: unknown[]): SocialLinkItem[] {
   return sortLoose(
     input.map((raw, index) => {
-      const item =
-        raw && typeof raw === "object" ? (raw as Partial<SocialLinkItem>) : {};
+      const rawRecord = toObjectRecord(raw);
+      const item = rawRecord as Partial<SocialLinkItem>;
+      const preserved = omitKeys(rawRecord, [
+        "id",
+        "label",
+        "href",
+        "sortOrder",
+        "isActive",
+        "icon",
+      ]);
 
       const label = toTrimmedString(item.label) || `Social Link ${index + 1}`;
       const href = toTrimmedString(item.href) || "#";
@@ -182,6 +209,7 @@ function normalizeSocialItems(input: unknown[]): SocialLinkItem[] {
         toTrimmedString(item.id) || buildId("social", label, index);
 
       return {
+        ...preserved,
         id,
         label,
         href,
@@ -196,10 +224,16 @@ function normalizeSocialItems(input: unknown[]): SocialLinkItem[] {
 function normalizePlatformItems(input: unknown[]): PlatformLinkItem[] {
   return sortLoose(
     input.map((raw, index) => {
-      const item =
-        raw && typeof raw === "object"
-          ? (raw as Partial<PlatformLinkItem>)
-          : {};
+      const rawRecord = toObjectRecord(raw);
+      const item = rawRecord as Partial<PlatformLinkItem>;
+      const preserved = omitKeys(rawRecord, [
+        "id",
+        "title",
+        "description",
+        "href",
+        "sortOrder",
+        "isActive",
+      ]);
 
       const title = toTrimmedString(item.title) || `Platform ${index + 1}`;
       const href = toTrimmedString(item.href) || "#";
@@ -208,6 +242,7 @@ function normalizePlatformItems(input: unknown[]): PlatformLinkItem[] {
         toTrimmedString(item.id) || buildId("platform", title, index);
 
       return {
+        ...preserved,
         id,
         title,
         href,
@@ -222,10 +257,16 @@ function normalizePlatformItems(input: unknown[]): PlatformLinkItem[] {
 function normalizeReferralItems(input: unknown[]): ReferralLinkItem[] {
   return sortLoose(
     input.map((raw, index) => {
-      const item =
-        raw && typeof raw === "object"
-          ? (raw as Partial<ReferralLinkItem>)
-          : {};
+      const rawRecord = toObjectRecord(raw);
+      const item = rawRecord as Partial<ReferralLinkItem>;
+      const preserved = omitKeys(rawRecord, [
+        "id",
+        "title",
+        "description",
+        "href",
+        "sortOrder",
+        "isActive",
+      ]);
 
       const title = toTrimmedString(item.title) || `Referral ${index + 1}`;
       const href = toTrimmedString(item.href) || "#";
@@ -234,6 +275,7 @@ function normalizeReferralItems(input: unknown[]): ReferralLinkItem[] {
         toTrimmedString(item.id) || buildId("referral", title, index);
 
       return {
+        ...preserved,
         id,
         title,
         href,
