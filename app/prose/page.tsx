@@ -1,8 +1,10 @@
-import { getWorksByCategory } from "@/lib/works-store";
+import { getWorksByCategoryLive } from "@/lib/works-store";
 import ProseCard from "@/components/ProseCard";
 
-export default function ProsePage() {
-  const prose = getWorksByCategory("prose");
+export const dynamic = "force-dynamic";
+
+export default async function ProsePage() {
+  const prose = await getWorksByCategoryLive("prose");
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16">

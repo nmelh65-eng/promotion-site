@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
-import { getPublishedWorks } from "@/lib/works-store";
+import { getPublishedWorksLive } from "@/lib/works-store";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://your-site.vercel.app";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = ["", "/about", "/contact", "/links", "/poetry", "/prose"];
 
   const staticEntries = staticPages.map((path) => ({
@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: new Date(),
   }));
 
-  const workEntries = getPublishedWorks().map((work) => ({
+  const workEntries = (await getPublishedWorksLive()).map((work) => ({
     url: `${siteUrl}/${work.category}/${work.id}`,
     lastModified: new Date(work.updatedAt),
   }));

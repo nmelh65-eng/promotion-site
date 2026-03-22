@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
-import { getWorkById } from "@/lib/works-store";
+import { getWorkByIdLive } from "@/lib/works-store";
+import WorkStats from "@/components/WorkStats";
+
+export const dynamic = "force-dynamic";
 
 export default async function ProseItemPage({
   params,
@@ -7,7 +10,7 @@ export default async function ProseItemPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const work = getWorkById(id);
+  const work = await getWorkByIdLive(id);
 
   if (!work || work.category !== "prose") {
     notFound();
@@ -24,10 +27,14 @@ export default async function ProseItemPage({
         <h1 className="mb-4 text-4xl font-bold text-white sm:text-6xl">
           {work.title}
         </h1>
-        <div className="mb-8 flex flex-wrap gap-3 text-sm text-gray-400">
-          <span>{work.readingTime} мин чтения</span>
-          <span>👁 {work.views}</span>
-          <span>❤ {work.likes}</span>
+
+        <div className="mb-8">
+          <WorkStats
+            id={work.id}
+            readingTime={work.readingTime}
+            initialViews={work.views}
+            initialLikes={work.likes}
+          />
         </div>
 
         <article className="space-y-6">

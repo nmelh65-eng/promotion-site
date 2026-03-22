@@ -1,8 +1,10 @@
-import { getWorksByCategory } from "@/lib/works-store";
+import { getWorksByCategoryLive } from "@/lib/works-store";
 import PoemCard from "@/components/PoemCard";
 
-export default function PoetryPage() {
-  const poetry = getWorksByCategory("poetry");
+export const dynamic = "force-dynamic";
+
+export default async function PoetryPage() {
+  const poetry = await getWorksByCategoryLive("poetry");
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16">
