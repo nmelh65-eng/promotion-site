@@ -2,17 +2,32 @@ import Link from "next/link";
 import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getPublishedWorksLive } from "@/lib/works-store";
-import { getAnalyticsSummary } from "@/lib/links-store";
+import {
+  getAnalyticsSummary,
+  getPlatformLinksLive,
+  getReferralLinksLive,
+  getSocialLinksLive,
+} from "@/lib/links-store";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const session = await requireAdmin();
-  const works = await getPublishedWorksLive();
-  const analytics = await getAnalyticsSummary();
+
+  const [works, analytics, socialLinks, platformLinks, referralLinks] =
+    await Promise.all([
+      getPublishedWorksLive(),
+      getAnalyticsSummary(),
+      getSocialLinksLive(),
+      getPlatformLinksLive(),
+      getReferralLinksLive(),
+    ]);
 
   const totalViews = works.reduce((sum, item) => sum + (item.views || 0), 0);
   const totalLikes = works.reduce((sum, item) => sum + (item.likes || 0), 0);
+  const activeLinksCount = [...socialLinks, ...platformLinks, ...referralLinks]
+    .filter((item) => item.isActive)
+    .length;
 
   const topWorks = [...works]
     .sort((a, b) => (b.views || 0) - (a.views || 0))
@@ -41,6 +56,12 @@ export default async function AdminPage() {
             Публикации
           </Link>
           <Link
+            href="/admin/links"
+            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-200"
+          >
+            Ссылки
+          </Link>
+          <Link
             href="/admin/works/new"
             className="rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-500 px-5 py-2.5 text-sm font-medium text-white"
           >
@@ -50,7 +71,7 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
           <div className="text-sm text-gray-500">Публикации</div>
           <div className="mt-2 text-3xl font-bold gradient-text">
@@ -76,6 +97,13 @@ export default async function AdminPage() {
           <div className="text-sm text-gray-500">Клики по ссылкам</div>
           <div className="mt-2 text-3xl font-bold gradient-text">
             {analytics.totalClicks}
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+          <div className="text-sm text-gray-500">Активные ссылки</div>
+          <div className="mt-2 text-3xl font-bold gradient-text">
+            {activeLinksCount}
           </div>
         </div>
       </section>
@@ -107,9 +135,18 @@ export default async function AdminPage() {
         </div>
 
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
-          <h2 className="mb-5 text-2xl font-semibold text-white">
-            Клики по ссылкам
-          </h2>
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-2xl font-semibold text-white">
+              Клики по ссылкам
+            </h2>
+
+            <Link
+              href="/admin/links"
+              className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
+            >
+              Управлять
+            </Link>
+          </div>
 
           <div className="grid gap-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-gray-200">

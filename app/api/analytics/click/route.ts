@@ -2,25 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { trackClick } from "@/lib/links-store";
 import type { AnalyticsTargetType } from "@/types";
 
-const ALLOWED_TARGETS: AnalyticsTargetType[] = ["social", "platform", "referral"];
+const VALID_TYPES: AnalyticsTargetType[] = ["social", "platform", "referral"];
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { targetType, targetId } = body ?? {};
 
-    if (
-      !targetType ||
-      !targetId ||
-      !ALLOWED_TARGETS.includes(targetType as AnalyticsTargetType)
-    ) {
+    const targetType = String(body?.targetType || "").trim() as AnalyticsTargetType;
+    const targetId = String(body?.targetId || "").trim();
+
+    if (!VALID_TYPES.includes(targetType)) {
       return NextResponse.json(
-        { ok: false, error: "Invalid payload" },
+        { ok: false, error: "Invalid targetType" },
         { status: 400 }
       );
     }
 
-    const clicks = await trackClick(targetType as AnalyticsTargetType, targetId);
+    if (!targetId) {
+      return NextResponse.json(
+        { ok: false, error: "Missing targetId" },
+        { status: 400 }
+      );
+    }
+
+    const clicks = await trackClick(targetType, targetId);
 
     return NextResponse.json({
       ok: true,
@@ -30,7 +35,7 @@ export async function POST(req: NextRequest) {
         clicks,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { ok: false, error: "Server error" },
       { status: 500 }
