@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { LinkCollectionType } from "@/lib/links-store";
 
 interface EditableLinkFormItem {
@@ -32,9 +32,31 @@ export default function LinksCollectionForm({
   const [items, setItems] = useState<EditableLinkFormItem[]>(initialItems);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const isSocial = type === "social";
 
+  const totalItems = items.length;
+  const activeItems = items.filter((item) => Boolean(item.isActive)).length;
+
+  const subtitle = useMemo(() => {
+    return `${totalItems} элементов · ${activeItems} активных`;
+  }, [totalItems, activeItems]);
+
+  function clearMessages() {
+    setError("");
+    setSuccess("");
+  }
+
+  function normalizeOrder(nextItems: EditableLinkFormItem[]) {
+    return nextItems.map((item, index) => ({
+      ...item,
+      sortOrder: index + 1,
+    }));
+  }
+
   function updateItem(index: number, patch: Partial<EditableLinkFormItem>) {
+    clearMessages();
+
     setItems((prev) =>
       prev.map((item, currentIndex) =>
         currentIndex === index ? { ...item, ...patch } : item
@@ -43,43 +65,66 @@ export default function LinksCollectionForm({
   }
 
   function addItem() {
-    setItems((prev) => [
-      ...prev,
-      isSocial
-        ? {
-            id: "",
-            label: "",
-            href: "",
-            icon: "",
-            sortOrder: prev.length + 1,
-            isActive: true,
-          }
-        : {
-            id: "",
-            title: "",
-            description: "",
-            href: "",
-            sortOrder: prev.length + 1,
-            isActive: true,
-          },
-    ]);
+    clearMessages();
+
+    setItems((prev) =>
+      normalizeOrder([
+        ...prev,
+        isSocial
+          ? {
+              id: "",
+              label: "",
+              href: "",
+              icon: "",
+              sortOrder: prev.length + 1,
+              isActive: true,
+            }
+          : {
+              id: "",
+              title: "",
+              description: "",
+              href: "",
+              sortOrder: prev.length + 1,
+              isActive: true,
+            },
+      ])
+    );
   }
 
   function removeItem(index: number) {
+    clearMessages();
+
     setItems((prev) =>
-      prev
-        .filter((_, currentIndex) => currentIndex !== index)
-        .map((item, currentIndex) => ({
-          ...item,
-          sortOrder: currentIndex + 1,
-        }))
+      normalizeOrder(
+        prev.filter((_, currentIndex) => currentIndex !== index)
+      )
     );
+  }
+
+  function moveItem(index: number, direction: -1 | 1) {
+    clearMessages();
+
+    setItems((prev) => {
+      const nextIndex = index + direction;
+
+      if (nextIndex < 0 || nextIndex >= prev.length) {
+        return prev;
+      }
+
+      const next = [...prev];
+      const currentItem = next[index];
+      next[index] = next[nextIndex];
+      next[nextIndex] = currentItem;
+
+      return normalizeOrder(next);
+    });
   }
 
   async function handleSave() {
     try {
       setSaving(true);
       setError("");
+      setSuccess("");
 
       const res = await fetch("/api/admin/links", {
         method: "PUT",
@@ -100,6 +145,7 @@ export default function LinksCollectionForm({
       }
 
       setItems(result.data);
+      setSuccess("Коллекция успешно сохранена");
       router.refresh();
     } catch {
       setError("Ошибка сохранения");
@@ -121,6 +167,7 @@ export default function LinksCollectionForm({
           <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-400">
             {description}
           </p>
+          <p className="mt-3 text-sm text-gray-500">{subtitle}</p>
           <p className="mt-3 text-xs text-gray-500">
             ID используется для аналитики кликов. Меняй его только если
             действительно хочешь новый идентификатор статистики.
@@ -147,24 +194,56 @@ export default function LinksCollectionForm({
         </div>
       </div>
 
+      {success ? (
+        <div className="mb-5 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          {success}
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="mb-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {error}
+        </div>
+      ) : null}
+
       <div className="grid gap-5">
         {items.map((item, index) => (
           <div
             key={`${type}-${item.id || index}`}
             className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5"
           >
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm uppercase tracking-[0.2em] text-gray-500">
                 Элемент #{index + 1}
               </div>
 
-              <button
-                type="button"
-                onClick={() => removeItem(index)}
-                className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300"
-              >
-                Удалить
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => moveItem(index, -1)}
+                  disabled={index === 0}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-200 disabled:opacity-40"
+                >
+                  ↑ Вверх
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => moveItem(index, 1)}
+                  disabled={index === items.length - 1}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-200 disabled:opacity-40"
+                >
+                  ↓ Вниз
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-300"
+                >
+                  Удалить
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-4">
@@ -268,9 +347,14 @@ export default function LinksCollectionForm({
             </div>
           </div>
         ))}
-      </div>
 
-      {error ? <div className="mt-5 text-sm text-red-400">{error}</div> : null}
+        {!items.length ? (
+          <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] p-8 text-center text-sm text-gray-500">
+            В коллекции пока нет элементов. Добавь первый элемент и сохрани
+            коллекцию.
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

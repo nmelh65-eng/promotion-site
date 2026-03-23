@@ -1,5 +1,4 @@
 import Link from "next/link";
-import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getPublishedWorksLive } from "@/lib/works-store";
 import {
@@ -8,6 +7,8 @@ import {
   getReferralLinksLive,
   getSocialLinksLive,
 } from "@/lib/links-store";
+import AdminNav from "@/components/admin/AdminNav";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -35,41 +36,29 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16">
-      <section className="mb-8 flex flex-col gap-4 rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-        <div>
-          <p className="mb-2 text-sm uppercase tracking-[0.24em] text-purple-200/70">
-            Admin Dashboard
-          </p>
-          <h1 className="text-3xl font-bold text-white sm:text-5xl">
-            Панель управления
-          </h1>
-          <p className="mt-3 text-sm text-gray-400">
-            Вход выполнен как: {session.username}
-          </p>
-        </div>
+      <AdminNav current="dashboard" />
 
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/admin/works"
-            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-200"
-          >
-            Публикации
-          </Link>
-          <Link
-            href="/admin/links"
-            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-200"
-          >
-            Ссылки
-          </Link>
-          <Link
-            href="/admin/works/new"
-            className="rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-500 px-5 py-2.5 text-sm font-medium text-white"
-          >
-            Новая публикация
-          </Link>
-          <AdminLogoutButton />
-        </div>
-      </section>
+      <AdminPageHeader
+        eyebrow="Admin Dashboard"
+        title="Панель управления"
+        description={`Вход выполнен как: ${session.username}`}
+        actions={
+          <>
+            <Link
+              href="/admin/works"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-gray-200"
+            >
+              Открыть публикации
+            </Link>
+            <Link
+              href="/admin/links"
+              className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
+            >
+              Открыть ссылки
+            </Link>
+          </>
+        }
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
@@ -110,9 +99,18 @@ export default async function AdminPage() {
 
       <section className="mt-8 grid gap-6 xl:grid-cols-2">
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
-          <h2 className="mb-5 text-2xl font-semibold text-white">
-            Топ публикаций по просмотрам
-          </h2>
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-2xl font-semibold text-white">
+              Топ публикаций по просмотрам
+            </h2>
+
+            <Link
+              href="/admin/works"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-gray-200"
+            >
+              Все публикации
+            </Link>
+          </div>
 
           <div className="grid gap-3">
             {topWorks.length ? (
