@@ -1,11 +1,27 @@
+import type { Metadata } from "next";
 import TrackedLinkCard from "@/components/TrackedLinkCard";
 import {
   getPlatformLinksLive,
   getReferralLinksLive,
   getSocialLinksLive,
 } from "@/lib/links-store";
+import { buildMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Ссылки и платформы",
+  description:
+    "Актуальные социальные ссылки, платформы и реферальные переходы автора на одной странице.",
+  path: "/links",
+  keywords: [
+    "ссылки",
+    "платформы",
+    "реферальные ссылки",
+    "социальные сети",
+    "автор",
+  ],
+});
 
 export default async function LinksPage() {
   const [socialLinks, platformLinks, referralLinks] = await Promise.all([

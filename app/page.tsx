@@ -1,14 +1,31 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getWorksByCategoryLive } from "@/lib/works-store";
 import {
   getReferralLinksLive,
   getSocialLinksLive,
 } from "@/lib/links-store";
+import { buildMetadata } from "@/lib/seo";
 import PoemCard from "@/components/PoemCard";
 import ProseCard from "@/components/ProseCard";
 import TrackedLinkCard from "@/components/TrackedLinkCard";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Авторский сайт продвижения",
+  description:
+    "Главная страница авторского сайта: публикации, социальные ссылки, продвижение и литературный контент.",
+  path: "/",
+  keywords: [
+    "авторский сайт",
+    "продвижение автора",
+    "литература",
+    "поэзия",
+    "проза",
+    "ссылки",
+  ],
+});
 
 export default async function HomePage() {
   const [poetry, prose, socialLinks, referralLinks] = await Promise.all([

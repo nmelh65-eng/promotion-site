@@ -1,8 +1,32 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getWorkByIdLive } from "@/lib/works-store";
+import {
+  buildNoIndexMetadata,
+  buildWorkMetadata,
+} from "@/lib/seo";
 import WorkStats from "@/components/WorkStats";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const work = await getWorkByIdLive(id);
+
+  if (!work || work.category !== "prose") {
+    return buildNoIndexMetadata(
+      "Материал не найден",
+      "Запрошенный прозаический текст не найден.",
+      `/prose/${id}`
+    );
+  }
+
+  return buildWorkMetadata(work, `/prose/${work.id}`);
+}
 
 export default async function ProseItemPage({
   params,

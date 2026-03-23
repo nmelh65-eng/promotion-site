@@ -1,20 +1,54 @@
 import type { MetadataRoute } from "next";
+import { absoluteUrl } from "@/lib/seo";
 import { getPublishedWorksLive } from "@/lib/works-store";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://your-site.vercel.app";
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticPages = ["", "/about", "/contact", "/links", "/poetry", "/prose"];
+  const works = await getPublishedWorksLive();
 
-  const staticEntries = staticPages.map((path) => ({
-    url: `${siteUrl}${path}`,
-    lastModified: new Date(),
-  }));
+  const staticEntries: MetadataRoute.Sitemap = [
+    {
+      url: absoluteUrl("/"),
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: absoluteUrl("/about"),
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: absoluteUrl("/contact"),
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: absoluteUrl("/links"),
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl("/poetry"),
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: absoluteUrl("/prose"),
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+  ];
 
-  const workEntries = (await getPublishedWorksLive()).map((work) => ({
-    url: `${siteUrl}/${work.category}/${work.id}`,
+  const workEntries: MetadataRoute.Sitemap = works.map((work) => ({
+    url: absoluteUrl(`/${work.category}/${work.id}`),
     lastModified: new Date(work.updatedAt),
+    changeFrequency: "weekly",
+    priority: 0.8,
   }));
 
   return [...staticEntries, ...workEntries];

@@ -2,31 +2,26 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://your-site.vercel.app";
+import { getSiteUrl, siteConfig } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "Promotion Site",
-    template: "%s | Promotion Site",
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
   },
-  description:
-    "Сайт продвижения авторского бренда, публикаций, ссылок и контента.",
+  description: siteConfig.defaultDescription,
+  applicationName: siteConfig.name,
+  authors: [{ name: siteConfig.author }],
+  creator: siteConfig.author,
+  publisher: siteConfig.author,
   openGraph: {
-    title: "Promotion Site",
-    description:
-      "Сайт продвижения авторского бренда, публикаций, ссылок и контента.",
-    url: siteUrl,
-    siteName: "Promotion Site",
+    siteName: siteConfig.name,
+    locale: "ru_RU",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Promotion Site",
-    description:
-      "Сайт продвижения авторского бренда, публикаций, ссылок и контента.",
+    card: "summary",
   },
 };
 

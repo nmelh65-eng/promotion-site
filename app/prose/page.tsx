@@ -1,7 +1,17 @@
+import type { Metadata } from "next";
 import { getWorksByCategoryLive } from "@/lib/works-store";
+import { buildMetadata } from "@/lib/seo";
 import ProseCard from "@/components/ProseCard";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Проза",
+  description:
+    "Авторская проза: рассказы, короткие тексты, литературные заметки и новые публикации.",
+  path: "/prose",
+  keywords: ["проза", "рассказы", "авторская проза", "литература"],
+});
 
 export default async function ProsePage() {
   const prose = await getWorksByCategoryLive("prose");

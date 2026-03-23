@@ -1,7 +1,17 @@
+import type { Metadata } from "next";
 import { getWorksByCategoryLive } from "@/lib/works-store";
+import { buildMetadata } from "@/lib/seo";
 import PoemCard from "@/components/PoemCard";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Поэзия",
+  description:
+    "Подборка авторских поэтических текстов: новые стихотворения, лирика и литературные публикации.",
+  path: "/poetry",
+  keywords: ["поэзия", "стихи", "авторские стихи", "литература"],
+});
 
 export default async function PoetryPage() {
   const poetry = await getWorksByCategoryLive("poetry");
