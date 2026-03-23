@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
 
-type AdminSection = "dashboard" | "works" | "links";
+type AdminSection = "dashboard" | "works" | "links" | "analytics";
 
 interface AdminNavProps {
   current: AdminSection;
@@ -23,13 +23,19 @@ const navItems: Array<{
     key: "works",
     href: "/admin/works",
     label: "Публикации",
-    description: "Тексты и материалы",
+    description: "Тексты и workflow",
   },
   {
     key: "links",
     href: "/admin/links",
     label: "Ссылки",
     description: "Social, platform, referral",
+  },
+  {
+    key: "analytics",
+    href: "/admin/analytics",
+    label: "Analytics",
+    description: "Контент и клики",
   },
 ];
 
@@ -55,7 +61,7 @@ export default function AdminNav({ current }: AdminNavProps) {
           </h2>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {navItems.map((item) => {
             const active = item.key === current;
 
@@ -98,6 +104,13 @@ export default function AdminNav({ current }: AdminNavProps) {
             className="rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-500 px-5 py-3 text-sm font-medium text-white"
           >
             Новая публикация
+          </Link>
+
+          <Link
+            href="/admin/analytics"
+            className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-5 py-3 text-sm text-purple-200"
+          >
+            Открыть analytics
           </Link>
 
           <Link

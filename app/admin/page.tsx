@@ -24,19 +24,19 @@ export default async function AdminPage() {
       getReferralLinksLive(),
     ]);
 
-  const publishedWorks = allWorks.filter((item) => item.isPublished);
-  const draftCount = allWorks.filter((item) => !item.isPublished).length;
-  const featuredCount = publishedWorks.filter((item) => item.isFeatured).length;
+    const publishedWorks = allWorks.filter((item) => item.isPublished);
+    const draftCount = allWorks.filter((item) => !item.isPublished).length;
+    const featuredCount = publishedWorks.filter((item) => item.isFeatured).length;
 
-  const totalViews = allWorks.reduce((sum, item) => sum + (item.views || 0), 0);
-  const totalLikes = allWorks.reduce((sum, item) => sum + (item.likes || 0), 0);
-  const activeLinksCount = [...socialLinks, ...platformLinks, ...referralLinks]
-    .filter((item) => item.isActive)
-    .length;
+    const totalViews = allWorks.reduce((sum, item) => sum + (item.views || 0), 0);
+    const totalLikes = allWorks.reduce((sum, item) => sum + (item.likes || 0), 0);
+    const activeLinksCount = [...socialLinks, ...platformLinks, ...referralLinks]
+      .filter((item) => item.isActive)
+      .length;
 
-  const topWorks = [...publishedWorks]
-    .sort((a, b) => (b.views || 0) - (a.views || 0))
-    .slice(0, 5);
+    const topWorks = [...publishedWorks]
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 5);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16">
@@ -55,10 +55,10 @@ export default async function AdminPage() {
               Открыть workflow
             </Link>
             <Link
-              href="/admin/links"
+              href="/admin/analytics"
               className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
             >
-              Открыть ссылки
+              Открыть analytics
             </Link>
           </>
         }
@@ -161,10 +161,10 @@ export default async function AdminPage() {
             </h2>
 
             <Link
-              href="/admin/works"
+              href="/admin/analytics"
               className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
             >
-              Смотреть все
+              Вся аналитика
             </Link>
           </div>
 
@@ -196,10 +196,10 @@ export default async function AdminPage() {
           </h2>
 
           <Link
-            href="/admin/links"
+            href="/admin/analytics"
             className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
           >
-            Управлять ссылками
+            Открыть link analytics
           </Link>
         </div>
 
