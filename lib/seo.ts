@@ -8,6 +8,8 @@ export const siteConfig = {
   author: "Natalia Melkher",
   defaultDescription:
     "Сайт продвижения авторского бренда, публикаций, ссылок и контента.",
+  telegramUrl: "https://t.me/nataliamelkher",
+  email: "natalia@melkher.com",
 };
 
 type BuildMetadataInput = {
@@ -17,6 +19,11 @@ type BuildMetadataInput = {
   keywords?: string[];
   noIndex?: boolean;
   type?: "website" | "article";
+};
+
+type BreadcrumbInput = {
+  name: string;
+  path: string;
 };
 
 function normalizeSiteUrl(value: string): string {
@@ -41,6 +48,10 @@ function normalizeDescription(value: string): string {
 
 function uniqueKeywords(items: string[]): string[] {
   return [...new Set(items.map((item) => item.trim()).filter(Boolean))];
+}
+
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
 export function buildMetadata({
@@ -118,8 +129,7 @@ export function buildWorkMetadata(
   work: WorkItem,
   path: string
 ): Metadata {
-  const title =
-    work.seo?.title?.trim() || work.title.trim();
+  const title = work.seo?.title?.trim() || work.title.trim();
 
   const description =
     work.seo?.description?.trim() ||
@@ -141,4 +151,127 @@ export function buildWorkMetadata(
       ...(work.tags || []),
     ]),
   });
+}
+
+export function buildWebsiteJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteConfig.name,
+    url: getSiteUrl(),
+    inLanguage: "ru",
+  };
+}
+
+export function buildPersonJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: siteConfig.author,
+    url: getSiteUrl(),
+    email: siteConfig.email,
+    sameAs: [siteConfig.telegramUrl],
+  };
+}
+
+export function buildAboutPageJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: "Обо мне",
+    url: absoluteUrl("/about"),
+    inLanguage: "ru",
+    about: {
+      "@type": "Person",
+      name: siteConfig.author,
+      url: getSiteUrl(),
+    },
+    mainEntity: buildPersonJsonLd(),
+  };
+}
+
+export function buildContactPageJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    name: "Контакты",
+    url: absoluteUrl("/contact"),
+    inLanguage: "ru",
+    mainEntity: {
+      "@type": "Person",
+      name: siteConfig.author,
+      url: getSiteUrl(),
+      email: siteConfig.email,
+      sameAs: [siteConfig.telegramUrl],
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "author contact",
+          email: siteConfig.email,
+          url: siteConfig.telegramUrl,
+          availableLanguage: ["ru"],
+        },
+      ],
+    },
+  };
+}
+
+export function buildBreadcrumbJsonLd(
+  items: BreadcrumbInput[]
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(item.path),
+    })),
+  };
+}
+
+export function buildWorkArticleJsonLd(
+  work: WorkItem,
+  path: string
+): Record<string, unknown> {
+  const title = work.seo?.title?.trim() || work.title.trim();
+
+  const description =
+    work.seo?.description?.trim() ||
+    work.excerpt?.trim() ||
+    normalizeDescription(work.content);
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description,
+    url: absoluteUrl(path),
+    mainEntityOfPage: absoluteUrl(path),
+    author: {
+      "@type": "Person",
+      name: siteConfig.author,
+      url: getSiteUrl(),
+    },
+    publisher: {
+      "@type": "Person",
+      name: siteConfig.author,
+      url: getSiteUrl(),
+    },
+    datePublished: work.createdAt,
+    dateModified: work.updatedAt || work.createdAt,
+    inLanguage: work.language || "ru",
+    articleSection: work.category === "poetry" ? "Поэзия" : "Проза",
+    genre: work.category === "poetry" ? "Poetry" : "Prose",
+    keywords: uniqueKeywords([
+      ...(work.tags || []),
+      work.category === "poetry" ? "поэзия" : "проза",
+      "литература",
+      "авторский текст",
+    ]).join(", "),
+    wordCount: countWords(work.content),
+    timeRequired: `PT${Math.max(1, work.readingTime || 1)}M`,
+    articleBody: work.content,
+  };
 }

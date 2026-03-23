@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getSiteUrl, siteConfig } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
+import {
+  buildPersonJsonLd,
+  buildWebsiteJsonLd,
+  getSiteUrl,
+  siteConfig,
+} from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -33,6 +39,8 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body>
+        <JsonLd data={buildWebsiteJsonLd()} />
+        <JsonLd data={buildPersonJsonLd()} />
         <div className="min-h-screen bg-[#090a10] text-white">
           <Header />
           <main className="pt-6">{children}</main>

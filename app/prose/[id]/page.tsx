@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getWorkByIdLive } from "@/lib/works-store";
 import {
+  buildBreadcrumbJsonLd,
   buildNoIndexMetadata,
+  buildWorkArticleJsonLd,
   buildWorkMetadata,
 } from "@/lib/seo";
+import JsonLd from "@/components/JsonLd";
 import WorkStats from "@/components/WorkStats";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +47,17 @@ export default async function ProseItemPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-16">
+      <JsonLd
+        data={[
+          buildBreadcrumbJsonLd([
+            { name: "Главная", path: "/" },
+            { name: "Проза", path: "/prose" },
+            { name: work.title, path: `/prose/${work.id}` },
+          ]),
+          buildWorkArticleJsonLd(work, `/prose/${work.id}`),
+        ]}
+      />
+
       <section className="glass rounded-[32px] border border-white/10 p-8 sm:p-12">
         <p className="mb-3 text-sm uppercase tracking-[0.24em] text-amber-200/70">
           Проза
