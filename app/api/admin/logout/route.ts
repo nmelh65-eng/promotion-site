@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { isProduction } from "@/lib/env";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST() {
   const response = NextResponse.json({
@@ -7,10 +11,12 @@ export async function POST() {
     data: { loggedOut: true },
   });
 
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+
   response.cookies.set(ADMIN_COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction(),
     path: "/",
     maxAge: 0,
   });
