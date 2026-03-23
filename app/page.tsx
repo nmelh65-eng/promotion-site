@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getWorksByCategoryLive } from "@/lib/works-store";
+import {
+  getPublishedWorksLive,
+  getWorksByCategoryLive,
+} from "@/lib/works-store";
 import {
   getReferralLinksLive,
   getSocialLinksLive,
@@ -28,12 +31,18 @@ export const metadata: Metadata = buildMetadata({
 });
 
 export default async function HomePage() {
-  const [poetry, prose, socialLinks, referralLinks] = await Promise.all([
-    getWorksByCategoryLive("poetry"),
-    getWorksByCategoryLive("prose"),
-    getSocialLinksLive(),
-    getReferralLinksLive(),
-  ]);
+  const [publishedWorks, poetry, prose, socialLinks, referralLinks] =
+    await Promise.all([
+      getPublishedWorksLive(),
+      getWorksByCategoryLive("poetry"),
+      getWorksByCategoryLive("prose"),
+      getSocialLinksLive(),
+      getReferralLinksLive(),
+    ]);
+
+  const featuredWorks = publishedWorks
+    .filter((item) => item.isFeatured)
+    .slice(0, 3);
 
   const latestPoetry = poetry.slice(0, 2);
   const latestProse = prose.slice(0, 1);
@@ -72,6 +81,32 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {featuredWorks.length ? (
+        <section className="mt-12">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-3xl font-semibold text-white">
+              Избранные публикации
+            </h2>
+            <Link
+              href="/poetry"
+              className="text-sm text-purple-300 hover:text-purple-200"
+            >
+              Контент →
+            </Link>
+          </div>
+
+          <div className="grid gap-5">
+            {featuredWorks.map((work) =>
+              work.category === "poetry" ? (
+                <PoemCard key={work.id} work={work} />
+              ) : (
+                <ProseCard key={work.id} work={work} />
+              )
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-12">
         <div className="mb-5 flex items-center justify-between gap-4">

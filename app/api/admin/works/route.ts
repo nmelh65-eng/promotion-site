@@ -151,6 +151,62 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  const session = await getAdminSession();
+
+  if (!session) {
+    return unauthorized();
+  }
+
+  try {
+    const body = await req.json();
+
+    const id = String(body?.id || "").trim();
+
+    if (!id) {
+      return invalid("Не указан id");
+    }
+
+    const existing = await getAnyWorkByIdLive(id);
+
+    if (!existing) {
+      return NextResponse.json(
+        { ok: false, error: "Not found" },
+        { status: 404 }
+      );
+    }
+
+    const nextIsPublished =
+      typeof body?.isPublished === "boolean"
+        ? body.isPublished
+        : existing.isPublished;
+
+    const nextIsFeatured =
+      typeof body?.isFeatured === "boolean"
+        ? body.isFeatured
+        : existing.isFeatured;
+
+    const work = await upsertWorkLive({
+      id: existing.id,
+      title: existing.title,
+      excerpt: existing.excerpt,
+      content: existing.content,
+      category: existing.category,
+      tags: existing.tags,
+      language: existing.language || "ru",
+      isPublished: nextIsPublished,
+      isFeatured: nextIsPublished ? nextIsFeatured : false,
+    });
+
+    return NextResponse.json({ ok: true, data: work });
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   const session = await getAdminSession();
 
