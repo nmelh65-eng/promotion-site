@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "build:termux": "next build --webpack",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean:termux": "node scripts/release-cleanup.mjs",
+    "release:check": "node scripts/release-check.mjs",
+    "release:termux": "npm run clean:termux && npm run typecheck && npm run build:termux && npm run release:check"
   },
   "dependencies": {
     "ioredis": "^5.10.1",

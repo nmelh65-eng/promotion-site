@@ -45,3 +45,9 @@ admin-cookie*.txt
 handoff*.txt
 typecheck.log
 .env.production.check
+kv-*.json
+kv-*.txt
+.admin_password.tmp
+.admin_secret.tmp
+.site-url.tmp
+.env.local.*.bak
