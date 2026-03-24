@@ -49,8 +49,14 @@ function normalizeSort(value: string): SearchSort {
 }
 
 function normalizeLimit(value: string | number | undefined): number {
-  const parsed = Number(value);
+  if (value === undefined || value === null) return 20;
+
+  const raw = String(value).trim();
+  if (!raw) return 20;
+
+  const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return 20;
+
   return Math.min(50, Math.max(1, Math.floor(parsed)));
 }
 
