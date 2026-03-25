@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "clean:termux": "node scripts/release-cleanup.mjs",
     "release:check": "node scripts/release-check.mjs",
-    "release:termux": "npm run clean:termux && npm run typecheck && npm run build:termux && npm run release:check"
+    "release:termux": "npm run clean:termux && npm run typecheck && npm run build:termux && npm run release:check",
+    "deploy:check": "node --env-file=.env.local scripts/final-deployment-check.mjs",
+    "deploy:final": "npm run release:termux && npm run deploy:check"
   },
   "dependencies": {
     "ioredis": "^5.10.1",

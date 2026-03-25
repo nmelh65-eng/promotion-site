@@ -51,3 +51,4 @@ kv-*.txt
 .admin_secret.tmp
 .site-url.tmp
 .env.local.*.bak
+final-check-report.json
