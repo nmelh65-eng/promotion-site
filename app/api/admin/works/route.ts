@@ -6,9 +6,16 @@ import {
   getAnyWorkByIdLive,
   upsertWorkLive,
 } from "@/lib/works-store";
+import type { ModerationState } from "@/lib/works-store";
 import type { WorkCategory } from "@/types";
 
 const VALID_CATEGORIES: WorkCategory[] = ["poetry", "prose"];
+const VALID_STATES: ModerationState[] = [
+  "draft",
+  "review",
+  "published",
+  "archived",
+];
 
 function unauthorized() {
   return NextResponse.json(
@@ -22,6 +29,13 @@ function invalid(message: string) {
     { ok: false, error: message },
     { status: 400 }
   );
+}
+
+function parseState(value: unknown): ModerationState | undefined {
+  const normalized = String(value || "").trim();
+  return VALID_STATES.includes(normalized as ModerationState)
+    ? (normalized as ModerationState)
+    : undefined;
 }
 
 export async function GET(req: NextRequest) {
@@ -68,11 +82,19 @@ export async function POST(req: NextRequest) {
     const tags = body?.tags;
     const isPublished = Boolean(body?.isPublished);
     const isFeatured = Boolean(body?.isFeatured);
+    const moderationStateInput = String(body?.moderationState || "").trim();
+    const moderationState = parseState(moderationStateInput);
+    const isHidden =
+      typeof body?.isHidden === "boolean" ? body.isHidden : false;
+    const moderationNotes = String(body?.moderationNotes || "").trim();
 
     if (!title) return invalid("Укажите заголовок");
     if (!content) return invalid("Укажите текст");
     if (!VALID_CATEGORIES.includes(category)) {
       return invalid("Некорректная категория");
+    }
+    if (moderationStateInput && !moderationState) {
+      return invalid("Некорректный moderationState");
     }
 
     const work = await upsertWorkLive({
@@ -84,6 +106,9 @@ export async function POST(req: NextRequest) {
       language: "ru",
       isPublished,
       isFeatured,
+      moderationState,
+      isHidden,
+      moderationNotes,
     });
 
     return NextResponse.json({ ok: true, data: work });
@@ -113,12 +138,20 @@ export async function PUT(req: NextRequest) {
     const tags = body?.tags;
     const isPublished = Boolean(body?.isPublished);
     const isFeatured = Boolean(body?.isFeatured);
+    const moderationStateInput = String(body?.moderationState || "").trim();
+    const moderationState = parseState(moderationStateInput);
+    const isHidden =
+      typeof body?.isHidden === "boolean" ? body.isHidden : false;
+    const moderationNotes = String(body?.moderationNotes || "").trim();
 
     if (!id) return invalid("Не указан id");
     if (!title) return invalid("Укажите заголовок");
     if (!content) return invalid("Укажите текст");
     if (!VALID_CATEGORIES.includes(category)) {
       return invalid("Некорректная категория");
+    }
+    if (moderationStateInput && !moderationState) {
+      return invalid("Некорректный moderationState");
     }
 
     const existing = await getAnyWorkByIdLive(id);
@@ -140,6 +173,9 @@ export async function PUT(req: NextRequest) {
       language: existing.language || "ru",
       isPublished,
       isFeatured,
+      moderationState,
+      isHidden,
+      moderationNotes,
     });
 
     return NextResponse.json({ ok: true, data: work });
@@ -162,9 +198,17 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
 
     const id = String(body?.id || "").trim();
+    const moderationStateInput = String(body?.moderationState || "").trim();
+    const moderationState = moderationStateInput
+      ? parseState(moderationStateInput)
+      : undefined;
 
     if (!id) {
       return invalid("Не указан id");
+    }
+
+    if (moderationStateInput && !moderationState) {
+      return invalid("Некорректный moderationState");
     }
 
     const existing = await getAnyWorkByIdLive(id);
@@ -176,15 +220,25 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const nextIsPublished =
-      typeof body?.isPublished === "boolean"
-        ? body.isPublished
-        : existing.isPublished;
+    const nextState =
+      moderationState ||
+      existing.moderationState ||
+      (existing.isPublished ? "published" : "draft");
 
-    const nextIsFeatured =
+    const nextFeatured =
       typeof body?.isFeatured === "boolean"
         ? body.isFeatured
         : existing.isFeatured;
+
+    const nextHidden =
+      typeof body?.isHidden === "boolean"
+        ? body.isHidden
+        : existing.isHidden;
+
+    const moderationNotes =
+      body?.moderationNotes !== undefined
+        ? String(body.moderationNotes || "").trim()
+        : String(existing.moderationNotes || "").trim();
 
     const work = await upsertWorkLive({
       id: existing.id,
@@ -194,8 +248,11 @@ export async function PATCH(req: NextRequest) {
       category: existing.category,
       tags: existing.tags,
       language: existing.language || "ru",
-      isPublished: nextIsPublished,
-      isFeatured: nextIsPublished ? nextIsFeatured : false,
+      isPublished: nextState === "published",
+      isFeatured: nextState === "published" ? Boolean(nextFeatured) : false,
+      moderationState: nextState,
+      isHidden: nextState === "published" ? Boolean(nextHidden) : false,
+      moderationNotes,
     });
 
     return NextResponse.json({ ok: true, data: work });

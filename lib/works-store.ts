@@ -4,27 +4,73 @@ import type { Language, WorkCategory, WorkItem } from "@/types";
 
 const WORKS_KEY = "promotion-site:works:v1";
 
+export type ModerationState = "draft" | "review" | "published" | "archived";
+
+export type ModeratedWork = WorkItem & {
+  moderationState?: ModerationState;
+  isHidden?: boolean;
+  moderationNotes?: string;
+};
+
 declare global {
-  var __promotionWorksMemory: WorkItem[] | undefined;
+  var __promotionWorksMemory: ModeratedWork[] | undefined;
 }
 
-function cloneBaseWorks(): WorkItem[] {
-  return baseWorks.map((item) => ({
+function normalizeModerationState(
+  value: string | undefined,
+  fallback: ModerationState
+): ModerationState {
+  return value === "draft" ||
+    value === "review" ||
+    value === "published" ||
+    value === "archived"
+    ? value
+    : fallback;
+}
+
+function normalizeModerationNotes(value: string | undefined): string {
+  return String(value || "").trim();
+}
+
+function normalizeWork(item: WorkItem | ModeratedWork): ModeratedWork {
+  const fallbackState: ModerationState = item.isPublished ? "published" : "draft";
+  const moderationState = normalizeModerationState(
+    (item as ModeratedWork).moderationState,
+    fallbackState
+  );
+
+  const isPublished = moderationState === "published";
+  const isFeatured = isPublished ? Boolean(item.isFeatured) : false;
+  const isHidden = isPublished ? Boolean((item as ModeratedWork).isHidden) : false;
+  const moderationNotes = normalizeModerationNotes(
+    (item as ModeratedWork).moderationNotes
+  );
+
+  return {
     ...item,
-    tags: [...item.tags],
+    tags: [...(item.tags || [])],
     seo: item.seo ? { ...item.seo } : undefined,
     translations: item.translations ? { ...item.translations } : undefined,
-  }));
+    isPublished,
+    isFeatured,
+    moderationState,
+    isHidden,
+    ...(moderationNotes ? { moderationNotes } : {}),
+  };
 }
 
-function sortWorks(items: WorkItem[]): WorkItem[] {
+function cloneBaseWorks(): ModeratedWork[] {
+  return baseWorks.map((item) => normalizeWork(item));
+}
+
+function sortWorks(items: ModeratedWork[]): ModeratedWork[] {
   return [...items].sort(
     (a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
-function getMemoryWorks(): WorkItem[] {
+function getMemoryWorks(): ModeratedWork[] {
   if (!globalThis.__promotionWorksMemory) {
     globalThis.__promotionWorksMemory = cloneBaseWorks();
   }
@@ -60,31 +106,39 @@ function createWorkId(category: WorkCategory): string {
   return `${category}-${Date.now()}`;
 }
 
-export function getAllWorks(): WorkItem[] {
+function isPublicWork(item: ModeratedWork): boolean {
+  return (
+    item.isPublished === true &&
+    item.moderationState === "published" &&
+    !item.isHidden
+  );
+}
+
+export function getAllWorks(): ModeratedWork[] {
   return sortWorks(cloneBaseWorks());
 }
 
-export function getPublishedWorks(): WorkItem[] {
-  return getAllWorks().filter((item) => item.isPublished);
+export function getPublishedWorks(): ModeratedWork[] {
+  return getAllWorks().filter(isPublicWork);
 }
 
-export function getWorksByCategory(category: WorkCategory): WorkItem[] {
+export function getWorksByCategory(category: WorkCategory): ModeratedWork[] {
   return getPublishedWorks().filter((item) => item.category === category);
 }
 
-export function getWorkById(id: string): WorkItem | undefined {
+export function getWorkById(id: string): ModeratedWork | undefined {
   return getPublishedWorks().find((item) => item.id === id);
 }
 
-async function readLiveWorks(): Promise<WorkItem[]> {
+async function readLiveWorks(): Promise<ModeratedWork[]> {
   const client = getKV();
 
   if (client) {
     try {
-      const stored = await client.get<WorkItem[]>(WORKS_KEY);
+      const stored = await client.get<ModeratedWork[]>(WORKS_KEY);
 
       if (Array.isArray(stored) && stored.length > 0) {
-        return sortWorks(stored);
+        return sortWorks(stored.map((item) => normalizeWork(item)));
       }
 
       const seeded = cloneBaseWorks();
@@ -98,8 +152,8 @@ async function readLiveWorks(): Promise<WorkItem[]> {
   return sortWorks(getMemoryWorks());
 }
 
-async function writeLiveWorks(nextWorks: WorkItem[]): Promise<void> {
-  const sorted = sortWorks(nextWorks);
+async function writeLiveWorks(nextWorks: ModeratedWork[]): Promise<void> {
+  const sorted = sortWorks(nextWorks.map((item) => normalizeWork(item)));
   const client = getKV();
 
   if (client) {
@@ -114,17 +168,17 @@ async function writeLiveWorks(nextWorks: WorkItem[]): Promise<void> {
   globalThis.__promotionWorksMemory = sorted;
 }
 
-export async function getAllWorksLive(): Promise<WorkItem[]> {
+export async function getAllWorksLive(): Promise<ModeratedWork[]> {
   return readLiveWorks();
 }
 
-export async function getPublishedWorksLive(): Promise<WorkItem[]> {
-  return (await readLiveWorks()).filter((item) => item.isPublished);
+export async function getPublishedWorksLive(): Promise<ModeratedWork[]> {
+  return (await readLiveWorks()).filter(isPublicWork);
 }
 
 export async function getWorksByCategoryLive(
   category: WorkCategory
-): Promise<WorkItem[]> {
+): Promise<ModeratedWork[]> {
   return (await getPublishedWorksLive()).filter(
     (item) => item.category === category
   );
@@ -132,20 +186,20 @@ export async function getWorksByCategoryLive(
 
 export async function getWorkByIdLive(
   id: string
-): Promise<WorkItem | undefined> {
+): Promise<ModeratedWork | undefined> {
   return (await getPublishedWorksLive()).find((item) => item.id === id);
 }
 
 export async function getAnyWorkByIdLive(
   id: string
-): Promise<WorkItem | undefined> {
+): Promise<ModeratedWork | undefined> {
   return (await readLiveWorks()).find((item) => item.id === id);
 }
 
 async function updateWork(
   id: string,
-  updater: (item: WorkItem) => Partial<WorkItem>
-): Promise<WorkItem | null> {
+  updater: (item: ModeratedWork) => Partial<ModeratedWork>
+): Promise<ModeratedWork | null> {
   const allWorks = await readLiveWorks();
   const index = allWorks.findIndex((item) => item.id === id);
 
@@ -154,11 +208,11 @@ async function updateWork(
   }
 
   const current = allWorks[index];
-  const updated: WorkItem = {
+  const updated: ModeratedWork = normalizeWork({
     ...current,
     ...updater(current),
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   const nextWorks = [...allWorks];
   nextWorks[index] = updated;
@@ -168,13 +222,13 @@ async function updateWork(
   return updated;
 }
 
-export async function incrementViews(id: string): Promise<WorkItem | null> {
+export async function incrementViews(id: string): Promise<ModeratedWork | null> {
   return updateWork(id, (item) => ({
     views: (item.views || 0) + 1,
   }));
 }
 
-export async function incrementLikes(id: string): Promise<WorkItem | null> {
+export async function incrementLikes(id: string): Promise<ModeratedWork | null> {
   return updateWork(id, (item) => ({
     likes: (item.likes || 0) + 1,
   }));
@@ -190,19 +244,41 @@ export async function upsertWorkLive(input: {
   language?: Language;
   isPublished?: boolean;
   isFeatured?: boolean;
-}): Promise<WorkItem> {
+  moderationState?: ModerationState | string;
+  isHidden?: boolean;
+  moderationNotes?: string;
+}): Promise<ModeratedWork> {
   const allWorks = await readLiveWorks();
   const now = new Date().toISOString();
   const normalizedTags = normalizeTags(input.tags);
   const normalizedExcerpt =
     (input.excerpt || "").trim() || buildExcerpt(input.content);
+  const normalizedNotes = normalizeModerationNotes(input.moderationNotes);
 
   if (input.id) {
     const index = allWorks.findIndex((item) => item.id === input.id);
 
     if (index !== -1) {
       const current = allWorks[index];
-      const updated: WorkItem = {
+      const nextState = normalizeModerationState(
+        typeof input.moderationState === "string" ? input.moderationState : undefined,
+        current.moderationState || (current.isPublished ? "published" : "draft")
+      );
+
+      const nextPublished = nextState === "published";
+      const nextFeatured = nextPublished
+        ? typeof input.isFeatured === "boolean"
+          ? input.isFeatured
+          : Boolean(current.isFeatured)
+        : false;
+
+      const nextHidden = nextPublished
+        ? typeof input.isHidden === "boolean"
+          ? input.isHidden
+          : Boolean(current.isHidden)
+        : false;
+
+      const updated: ModeratedWork = normalizeWork({
         ...current,
         title: input.title.trim(),
         excerpt: normalizedExcerpt,
@@ -211,16 +287,13 @@ export async function upsertWorkLive(input: {
         tags: normalizedTags,
         language: input.language || current.language || "ru",
         readingTime: estimateReadingTime(input.content),
-        isPublished:
-          typeof input.isPublished === "boolean"
-            ? input.isPublished
-            : current.isPublished,
-        isFeatured:
-          typeof input.isFeatured === "boolean"
-            ? input.isFeatured
-            : current.isFeatured,
+        isPublished: nextPublished,
+        isFeatured: nextFeatured,
+        moderationState: nextState,
+        isHidden: nextHidden,
+        moderationNotes: normalizedNotes || undefined,
         updatedAt: now,
-      };
+      });
 
       const nextWorks = [...allWorks];
       nextWorks[index] = updated;
@@ -231,8 +304,16 @@ export async function upsertWorkLive(input: {
   }
 
   const id = createWorkId(input.category);
+  const nextState = normalizeModerationState(
+    typeof input.moderationState === "string" ? input.moderationState : undefined,
+    input.isPublished ? "published" : "draft"
+  );
 
-  const created: WorkItem = {
+  const nextPublished = nextState === "published";
+  const nextFeatured = nextPublished ? Boolean(input.isFeatured) : false;
+  const nextHidden = nextPublished ? Boolean(input.isHidden) : false;
+
+  const created: ModeratedWork = normalizeWork({
     id,
     slug: id,
     title: input.title.trim(),
@@ -246,9 +327,12 @@ export async function upsertWorkLive(input: {
     readingTime: estimateReadingTime(input.content),
     views: 0,
     likes: 0,
-    isPublished: Boolean(input.isPublished),
-    isFeatured: Boolean(input.isFeatured),
-  };
+    isPublished: nextPublished,
+    isFeatured: nextFeatured,
+    moderationState: nextState,
+    isHidden: nextHidden,
+    ...(normalizedNotes ? { moderationNotes: normalizedNotes } : {}),
+  });
 
   await writeLiveWorks([created, ...allWorks]);
 

@@ -3,10 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { WorkCategory, WorkItem } from "@/types";
+import type { ModerationState } from "@/lib/works-store";
 import AdminDeleteWorkButton from "@/components/admin/AdminDeleteWorkButton";
 
+type AdminEditableWork = WorkItem & {
+  moderationState?: ModerationState;
+  isHidden?: boolean;
+  moderationNotes?: string;
+};
+
 interface WorkFormProps {
-  initialWork?: WorkItem | null;
+  initialWork?: AdminEditableWork | null;
 }
 
 export default function WorkForm({ initialWork }: WorkFormProps) {
@@ -20,11 +27,16 @@ export default function WorkForm({ initialWork }: WorkFormProps) {
     initialWork?.category || "poetry"
   );
   const [tags, setTags] = useState((initialWork?.tags || []).join(", "));
-  const [isPublished, setIsPublished] = useState(
-    Boolean(initialWork?.isPublished)
+  const [moderationState, setModerationState] = useState<ModerationState>(
+    initialWork?.moderationState ||
+      (initialWork?.isPublished ? "published" : "draft")
   );
   const [isFeatured, setIsFeatured] = useState(
     Boolean(initialWork?.isFeatured)
+  );
+  const [isHidden, setIsHidden] = useState(Boolean(initialWork?.isHidden));
+  const [moderationNotes, setModerationNotes] = useState(
+    initialWork?.moderationNotes || ""
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -33,6 +45,8 @@ export default function WorkForm({ initialWork }: WorkFormProps) {
     () => (isEdit ? "Редактирование публикации" : "Новая публикация"),
     [isEdit]
   );
+
+  const isPublished = moderationState === "published";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,7 +66,10 @@ export default function WorkForm({ initialWork }: WorkFormProps) {
           .map((tag) => tag.trim())
           .filter(Boolean),
         isPublished,
-        isFeatured,
+        isFeatured: isPublished ? isFeatured : false,
+        moderationState,
+        isHidden: isPublished ? isHidden : false,
+        moderationNotes,
       };
 
       const res = await fetch("/api/admin/works", {
@@ -129,6 +146,32 @@ export default function WorkForm({ initialWork }: WorkFormProps) {
         </div>
 
         <div className="grid gap-2">
+          <label className="text-sm text-gray-300">Moderation state</label>
+          <select
+            value={moderationState}
+            onChange={(e) => {
+              const next = e.target.value as ModerationState;
+              setModerationState(next);
+
+              if (next !== "published") {
+                setIsFeatured(false);
+                setIsHidden(false);
+              }
+            }}
+            className="rounded-2xl border border-white/10 bg-[#11131b] px-4 py-3 text-white outline-none"
+          >
+            <option value="draft">draft</option>
+            <option value="review">review</option>
+            <option value="published">published</option>
+            <option value="archived">archived</option>
+          </select>
+          <p className="text-xs text-gray-500">
+            Published видно в public. Review и draft остаются только в админке.
+            Archived убирает материал из активного workflow.
+          </p>
+        </div>
+
+        <div className="grid gap-2">
           <label className="text-sm text-gray-300">Теги (через запятую)</label>
           <input
             value={tags}
@@ -148,23 +191,36 @@ export default function WorkForm({ initialWork }: WorkFormProps) {
           />
         </div>
 
+        <div className="grid gap-2">
+          <label className="text-sm text-gray-300">Moderation notes</label>
+          <textarea
+            value={moderationNotes}
+            onChange={(e) => setModerationNotes(e.target.value)}
+            rows={4}
+            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none"
+            placeholder="Причина скрытия, комментарий к review, внутренние заметки..."
+          />
+        </div>
+
         <div className="flex flex-wrap gap-4">
           <label className="inline-flex items-center gap-2 text-sm text-gray-300">
             <input
               type="checkbox"
-              checked={isPublished}
-              onChange={(e) => setIsPublished(e.target.checked)}
+              checked={isFeatured}
+              disabled={!isPublished}
+              onChange={(e) => setIsFeatured(e.target.checked)}
             />
-            Опубликовано
+            Featured
           </label>
 
           <label className="inline-flex items-center gap-2 text-sm text-gray-300">
             <input
               type="checkbox"
-              checked={isFeatured}
-              onChange={(e) => setIsFeatured(e.target.checked)}
+              checked={isHidden}
+              disabled={!isPublished}
+              onChange={(e) => setIsHidden(e.target.checked)}
             />
-            Featured
+            Hidden from public
           </label>
         </div>
 
