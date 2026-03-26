@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getWorkByIdLive, getWorksByCategoryLive } from "@/lib/works-store";
+import { notFound, permanentRedirect } from "next/navigation";
+import {
+  getPublicWorkBySlugOrIdLive,
+  getWorksByCategoryLive,
+} from "@/lib/works-store";
 import {
   buildBreadcrumbJsonLd,
   buildNoIndexMetadata,
@@ -24,7 +27,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const work = await getWorkByIdLive(id);
+  const work = await getPublicWorkBySlugOrIdLive(id);
 
   if (!work || work.category !== "prose") {
     return buildNoIndexMetadata(
@@ -34,7 +37,7 @@ export async function generateMetadata({
     );
   }
 
-  return buildWorkMetadata(work, `/prose/${work.id}`);
+  return buildWorkMetadata(work, `/prose/${work.slug || work.id}`);
 }
 
 export default async function ProseItemPage({
@@ -43,10 +46,14 @@ export default async function ProseItemPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const work = await getWorkByIdLive(id);
+  const work = await getPublicWorkBySlugOrIdLive(id);
 
   if (!work || work.category !== "prose") {
     notFound();
+  }
+
+  if (id === work.id && work.slug && work.slug !== work.id) {
+    permanentRedirect(`/prose/${work.slug}`);
   }
 
   const parts = work.content.split(/\n\n+/).filter(Boolean);
@@ -61,7 +68,8 @@ export default async function ProseItemPage({
       if (b.score !== a.score) return b.score - a.score;
 
       return (
-        new Date(b.item.createdAt).getTime() - new Date(a.item.createdAt).getTime()
+        new Date(b.item.createdAt).getTime() -
+        new Date(a.item.createdAt).getTime()
       );
     })
     .slice(0, 2)
@@ -74,9 +82,9 @@ export default async function ProseItemPage({
           buildBreadcrumbJsonLd([
             { name: "Главная", path: "/" },
             { name: "Проза", path: "/prose" },
-            { name: work.title, path: `/prose/${work.id}` },
+            { name: work.title, path: `/prose/${work.slug || work.id}` },
           ]),
-          buildWorkArticleJsonLd(work, `/prose/${work.id}`),
+          buildWorkArticleJsonLd(work, `/prose/${work.slug || work.id}`),
         ]}
       />
 

@@ -96,6 +96,7 @@ export default async function AdminWorksPage({
     if (qLower) {
       const haystack = [
         work.id,
+        work.slug,
         work.title,
         work.excerpt,
         work.category,
@@ -159,7 +160,7 @@ export default async function AdminWorksPage({
             <input
               name="q"
               defaultValue={q}
-              placeholder="ID, заголовок, excerpt, теги..."
+              placeholder="ID, slug, заголовок, excerpt, теги..."
               className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none"
             />
           </div>
@@ -286,6 +287,7 @@ export default async function AdminWorksPage({
         <div className="grid gap-4">
           {filteredWorks.map((work) => {
             const state = getState(work);
+            const publicHref = `/${work.category}/${work.slug || work.id}`;
 
             return (
               <div
@@ -334,7 +336,7 @@ export default async function AdminWorksPage({
                       ) : null}
 
                       <div className="mt-4 text-xs text-gray-500">
-                        ID: {work.id} · 👁 {work.views} · ❤ {work.likes}
+                        ID: {work.id} · slug: {work.slug} · 👁 {work.views} · ❤ {work.likes}
                       </div>
                     </div>
 
@@ -346,7 +348,7 @@ export default async function AdminWorksPage({
                         Редактировать
                       </Link>
                       <Link
-                        href={`/${work.category}/${work.id}`}
+                        href={publicHref}
                         className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
                       >
                         Открыть

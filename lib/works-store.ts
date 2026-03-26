@@ -32,25 +32,79 @@ function normalizeModerationNotes(value: string | undefined): string {
   return String(value || "").trim();
 }
 
-function normalizeWork(item: WorkItem | ModeratedWork): ModeratedWork {
-  const fallbackState: ModerationState = item.isPublished ? "published" : "draft";
-  const moderationState = normalizeModerationState(
-    (item as ModeratedWork).moderationState,
-    fallbackState
-  );
+function slugifyTitle(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}\s-]+/gu, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 96);
+}
 
-  const isPublished = moderationState === "published";
-  const isFeatured = isPublished ? Boolean(item.isFeatured) : false;
-  const isHidden = isPublished ? Boolean((item as ModeratedWork).isHidden) : false;
-  const moderationNotes = normalizeModerationNotes(
-    (item as ModeratedWork).moderationNotes
-  );
+function shouldRegenerateSlug(slug: string | undefined, id: string): boolean {
+  const normalized = String(slug || "").trim();
 
+  if (!normalized) return true;
+  if (normalized === id) return true;
+  if (/^(poem|poetry|prose)-\d+$/i.test(normalized)) return true;
+  if (/^(poetry|prose)-\d{10,}$/i.test(normalized)) return true;
+
+  return false;
+}
+
+function ensureUniqueSlug(
+  baseSlug: string,
+  used: Set<string>,
+  fallbackId: string
+): string {
+  const safeBase = baseSlug || slugifyTitle(fallbackId) || fallbackId.toLowerCase();
+
+  if (!used.has(safeBase)) {
+    used.add(safeBase);
+    return safeBase;
+  }
+
+  let index = 2;
+  let next = `${safeBase}-${index}`;
+
+  while (used.has(next)) {
+    index += 1;
+    next = `${safeBase}-${index}`;
+  }
+
+  used.add(next);
+  return next;
+}
+
+function cloneRawWork(item: WorkItem | ModeratedWork): ModeratedWork {
   return {
     ...item,
     tags: [...(item.tags || [])],
     seo: item.seo ? { ...item.seo } : undefined,
     translations: item.translations ? { ...item.translations } : undefined,
+  };
+}
+
+function normalizeWorkShape(item: WorkItem | ModeratedWork): ModeratedWork {
+  const raw = cloneRawWork(item);
+  const fallbackState: ModerationState = raw.isPublished ? "published" : "draft";
+
+  const moderationState = normalizeModerationState(
+    (raw as ModeratedWork).moderationState,
+    fallbackState
+  );
+
+  const isPublished = moderationState === "published";
+  const isFeatured = isPublished ? Boolean(raw.isFeatured) : false;
+  const isHidden = isPublished ? Boolean((raw as ModeratedWork).isHidden) : false;
+  const moderationNotes = normalizeModerationNotes(
+    (raw as ModeratedWork).moderationNotes
+  );
+
+  return {
+    ...raw,
     isPublished,
     isFeatured,
     moderationState,
@@ -59,8 +113,30 @@ function normalizeWork(item: WorkItem | ModeratedWork): ModeratedWork {
   };
 }
 
+function normalizeWorksCollection(
+  items: Array<WorkItem | ModeratedWork>
+): ModeratedWork[] {
+  const usedSlugs = new Set<string>();
+
+  return items.map((rawItem) => {
+    const item = normalizeWorkShape(rawItem);
+
+    const currentSlug = String(item.slug || "").trim();
+    const baseSlug = shouldRegenerateSlug(currentSlug, item.id)
+      ? slugifyTitle(item.title)
+      : slugifyTitle(currentSlug);
+
+    const slug = ensureUniqueSlug(baseSlug, usedSlugs, item.id);
+
+    return {
+      ...item,
+      slug,
+    };
+  });
+}
+
 function cloneBaseWorks(): ModeratedWork[] {
-  return baseWorks.map((item) => normalizeWork(item));
+  return normalizeWorksCollection(baseWorks);
 }
 
 function sortWorks(items: ModeratedWork[]): ModeratedWork[] {
@@ -138,7 +214,7 @@ async function readLiveWorks(): Promise<ModeratedWork[]> {
       const stored = await client.get<ModeratedWork[]>(WORKS_KEY);
 
       if (Array.isArray(stored) && stored.length > 0) {
-        return sortWorks(stored.map((item) => normalizeWork(item)));
+        return sortWorks(normalizeWorksCollection(stored));
       }
 
       const seeded = cloneBaseWorks();
@@ -153,19 +229,19 @@ async function readLiveWorks(): Promise<ModeratedWork[]> {
 }
 
 async function writeLiveWorks(nextWorks: ModeratedWork[]): Promise<void> {
-  const sorted = sortWorks(nextWorks.map((item) => normalizeWork(item)));
+  const normalized = sortWorks(normalizeWorksCollection(nextWorks));
   const client = getKV();
 
   if (client) {
     try {
-      await client.set(WORKS_KEY, sorted);
+      await client.set(WORKS_KEY, normalized);
       return;
     } catch (error) {
       console.error("KV/Redis write error:", error);
     }
   }
 
-  globalThis.__promotionWorksMemory = sorted;
+  globalThis.__promotionWorksMemory = normalized;
 }
 
 export async function getAllWorksLive(): Promise<ModeratedWork[]> {
@@ -190,10 +266,32 @@ export async function getWorkByIdLive(
   return (await getPublishedWorksLive()).find((item) => item.id === id);
 }
 
+export async function getWorkBySlugLive(
+  slug: string
+): Promise<ModeratedWork | undefined> {
+  return (await getPublishedWorksLive()).find((item) => item.slug === slug);
+}
+
 export async function getAnyWorkByIdLive(
   id: string
 ): Promise<ModeratedWork | undefined> {
   return (await readLiveWorks()).find((item) => item.id === id);
+}
+
+export async function getAnyWorkBySlugLive(
+  slug: string
+): Promise<ModeratedWork | undefined> {
+  return (await readLiveWorks()).find((item) => item.slug === slug);
+}
+
+export async function getPublicWorkBySlugOrIdLive(
+  slugOrId: string
+): Promise<ModeratedWork | undefined> {
+  const published = await getPublishedWorksLive();
+
+  return published.find(
+    (item) => item.slug === slugOrId || item.id === slugOrId
+  );
 }
 
 async function updateWork(
@@ -208,18 +306,18 @@ async function updateWork(
   }
 
   const current = allWorks[index];
-  const updated: ModeratedWork = normalizeWork({
+  const updated: ModeratedWork = {
     ...current,
     ...updater(current),
     updatedAt: new Date().toISOString(),
-  });
+  };
 
   const nextWorks = [...allWorks];
   nextWorks[index] = updated;
 
   await writeLiveWorks(nextWorks);
 
-  return updated;
+  return (await readLiveWorks()).find((item) => item.id === id) || null;
 }
 
 export async function incrementViews(id: string): Promise<ModeratedWork | null> {
@@ -278,7 +376,7 @@ export async function upsertWorkLive(input: {
           : Boolean(current.isHidden)
         : false;
 
-      const updated: ModeratedWork = normalizeWork({
+      const updated: ModeratedWork = {
         ...current,
         title: input.title.trim(),
         excerpt: normalizedExcerpt,
@@ -293,13 +391,14 @@ export async function upsertWorkLive(input: {
         isHidden: nextHidden,
         moderationNotes: normalizedNotes || undefined,
         updatedAt: now,
-      });
+      };
 
       const nextWorks = [...allWorks];
       nextWorks[index] = updated;
 
       await writeLiveWorks(nextWorks);
-      return updated;
+
+      return (await readLiveWorks()).find((item) => item.id === current.id)!;
     }
   }
 
@@ -313,7 +412,7 @@ export async function upsertWorkLive(input: {
   const nextFeatured = nextPublished ? Boolean(input.isFeatured) : false;
   const nextHidden = nextPublished ? Boolean(input.isHidden) : false;
 
-  const created: ModeratedWork = normalizeWork({
+  const created: ModeratedWork = {
     id,
     slug: id,
     title: input.title.trim(),
@@ -332,11 +431,11 @@ export async function upsertWorkLive(input: {
     moderationState: nextState,
     isHidden: nextHidden,
     ...(normalizedNotes ? { moderationNotes: normalizedNotes } : {}),
-  });
+  };
 
   await writeLiveWorks([created, ...allWorks]);
 
-  return created;
+  return (await readLiveWorks()).find((item) => item.id === id)!;
 }
 
 export async function deleteWorkLive(id: string): Promise<boolean> {
