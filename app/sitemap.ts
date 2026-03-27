@@ -45,7 +45,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const workEntries: MetadataRoute.Sitemap = works.map((work) => ({
-    url: absoluteUrl(`/${work.category}/${work.id}`),
+    url: absoluteUrl(
+      `/${work.category}/${encodeURIComponent(work.slug || work.id)}`
+    ),
     lastModified: new Date(work.updatedAt),
     changeFrequency: "weekly",
     priority: 0.8,

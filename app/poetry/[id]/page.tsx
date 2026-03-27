@@ -21,23 +21,34 @@ function overlapScore(currentTags: string[], candidateTags: string[]): number {
   return candidateTags.filter((tag) => currentTags.includes(tag)).length;
 }
 
+function safeDecodeRouteParam(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  const work = await getPublicWorkBySlugOrIdLive(id);
+  const rawId = (await params).id;
+  const routeId = safeDecodeRouteParam(rawId);
+  const work = await getPublicWorkBySlugOrIdLive(routeId);
 
   if (!work || work.category !== "poetry") {
     return buildNoIndexMetadata(
       "Материал не найден",
       "Запрошенное стихотворение не найдено.",
-      `/poetry/${id}`
+      `/poetry/${rawId}`
     );
   }
 
-  return buildWorkMetadata(work, `/poetry/${work.slug || work.id}`);
+  const publicSlug = encodeURIComponent(work.slug || work.id);
+
+  return buildWorkMetadata(work, `/poetry/${publicSlug}`);
 }
 
 export default async function PoetryItemPage({
@@ -45,15 +56,18 @@ export default async function PoetryItemPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const work = await getPublicWorkBySlugOrIdLive(id);
+  const rawId = (await params).id;
+  const routeId = safeDecodeRouteParam(rawId);
+  const work = await getPublicWorkBySlugOrIdLive(routeId);
 
   if (!work || work.category !== "poetry") {
     notFound();
   }
 
-  if (id === work.id && work.slug && work.slug !== work.id) {
-    permanentRedirect(`/poetry/${work.slug}`);
+  const publicSlug = encodeURIComponent(work.slug || work.id);
+
+  if (routeId === work.id && work.slug && work.slug !== work.id) {
+    permanentRedirect(`/poetry/${publicSlug}`);
   }
 
   const parts = work.content.split(/\n\n+/).filter(Boolean);
@@ -82,9 +96,9 @@ export default async function PoetryItemPage({
           buildBreadcrumbJsonLd([
             { name: "Главная", path: "/" },
             { name: "Поэзия", path: "/poetry" },
-            { name: work.title, path: `/poetry/${work.slug || work.id}` },
+            { name: work.title, path: `/poetry/${publicSlug}` },
           ]),
-          buildWorkArticleJsonLd(work, `/poetry/${work.slug || work.id}`),
+          buildWorkArticleJsonLd(work, `/poetry/${publicSlug}`),
         ]}
       />
 

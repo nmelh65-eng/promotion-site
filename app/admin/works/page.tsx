@@ -287,7 +287,9 @@ export default async function AdminWorksPage({
         <div className="grid gap-4">
           {filteredWorks.map((work) => {
             const state = getState(work);
-            const publicHref = `/${work.category}/${work.slug || work.id}`;
+            const publicHref = `/${work.category}/${encodeURIComponent(
+              work.slug || work.id
+            )}`;
 
             return (
               <div

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { WorkItem } from "@/types";
 
 export default function ProseCard({ work }: { work: WorkItem }) {
-  const publicHref = `/prose/${work.slug || work.id}`;
+  const publicHref = `/prose/${encodeURIComponent(work.slug || work.id)}`;
 
   return (
     <article className="glass rounded-[28px] border border-white/10 p-6">
