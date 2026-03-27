@@ -13,7 +13,9 @@
     "release:check": "node scripts/release-check.mjs",
     "release:termux": "npm run clean:termux && npm run typecheck && npm run build:termux && npm run release:check",
     "deploy:check": "node --env-file=.env.local scripts/final-deployment-check.mjs",
-    "deploy:final": "npm run release:termux && npm run deploy:check"
+    "deploy:final": "npm run release:termux && npm run deploy:check",
+    "handoff:generate": "node --env-file=.env.local scripts/generate-project-handoff.mjs",
+    "handoff:termux": "npm run release:check && npm run handoff:generate"
   },
   "dependencies": {
     "ioredis": "^5.10.1",
