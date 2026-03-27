@@ -11,6 +11,7 @@ import ProseCard from "@/components/ProseCard";
 import TrackedLinkCard from "@/components/TrackedLinkCard";
 import SectionHeader from "@/components/public/SectionHeader";
 import HomeMetricCard from "@/components/public/HomeMetricCard";
+import NewsletterSignupForm from "@/components/public/NewsletterSignupForm";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,35 @@ export default async function HomePage() {
             />
           </div>
         </div>
+      </section>
+
+      <section className="mt-12 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="rounded-[32px] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+          <p className="mb-2 text-sm uppercase tracking-[0.24em] text-purple-200/70">
+            Audience Capture
+          </p>
+          <h2 className="text-3xl font-semibold text-white">
+            Подпишись на обновления
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-400">
+            Если хочешь получать новые публикации, подборки и заметные обновления
+            проекта, оставь email и следи за развитием авторской витрины.
+          </p>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-300">
+              Новые поэтические и прозаические публикации
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-300">
+              Обновления featured-материалов и подборок
+            </div>
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-300">
+              Новые точки входа, платформы и публичные форматы
+            </div>
+          </div>
+        </div>
+
+        <NewsletterSignupForm source="homepage" />
       </section>
 
       <section className="mt-12">
