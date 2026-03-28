@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getAllWorksLive } from "@/lib/works-store";
+import { getAllSubscribersLive } from "@/lib/subscribers-store";
 import {
   getAnalyticsSummary,
   getPlatformLinksLive,
@@ -20,14 +21,21 @@ function getState(work: ModeratedWork) {
 export default async function AdminPage() {
   const session = await requireAdmin();
 
-  const [allWorks, analytics, socialLinks, platformLinks, referralLinks] =
-    await Promise.all([
-      getAllWorksLive(),
-      getAnalyticsSummary(),
-      getSocialLinksLive(),
-      getPlatformLinksLive(),
-      getReferralLinksLive(),
-    ]);
+  const [
+    allWorks,
+    analytics,
+    socialLinks,
+    platformLinks,
+    referralLinks,
+    subscribers,
+  ] = await Promise.all([
+    getAllWorksLive(),
+    getAnalyticsSummary(),
+    getSocialLinksLive(),
+    getPlatformLinksLive(),
+    getReferralLinksLive(),
+    getAllSubscribersLive(),
+  ]);
 
   const publicWorks = allWorks.filter(
     (item) => getState(item) === "published" && !item.isHidden
@@ -55,6 +63,9 @@ export default async function AdminPage() {
     .sort((a, b) => (b.views || 0) - (a.views || 0))
     .slice(0, 5);
 
+  const subscriberCount = subscribers.length;
+  const latestSubscriber = subscribers[0];
+
   return (
     <div className="mx-auto max-w-6xl px-4 pb-16">
       <AdminNav current="dashboard" />
@@ -72,16 +83,16 @@ export default async function AdminPage() {
               Открыть moderation
             </Link>
             <Link
-              href="/admin/analytics"
+              href="/admin/subscribers"
               className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
             >
-              Открыть analytics
+              Открыть subscribers
             </Link>
           </>
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-8">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-9">
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
           <div className="text-sm text-gray-500">Всего публикаций</div>
           <div className="mt-2 text-3xl font-bold gradient-text">
@@ -137,9 +148,16 @@ export default async function AdminPage() {
             {totalLikes}
           </div>
         </div>
+
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+          <div className="text-sm text-gray-500">Subscribers</div>
+          <div className="mt-2 text-3xl font-bold gradient-text">
+            {subscriberCount}
+          </div>
+        </div>
       </section>
 
-      <section className="mt-8 grid gap-6 xl:grid-cols-2">
+      <section className="mt-8 grid gap-6 xl:grid-cols-3">
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <h2 className="text-2xl font-semibold text-white">
@@ -195,7 +213,40 @@ export default async function AdminPage() {
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
           <div className="mb-5 flex items-center justify-between gap-4">
             <h2 className="text-2xl font-semibold text-white">
-              Топ public-публикаций по просмотрам
+              Audience capture
+            </h2>
+
+            <Link
+              href="/admin/subscribers"
+              className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-2.5 text-sm text-purple-200"
+            >
+              Открыть subscribers
+            </Link>
+          </div>
+
+          <div className="grid gap-3">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-gray-200">
+              <div className="font-medium">Всего подписчиков</div>
+              <div className="mt-1 text-xs text-gray-500">
+                {subscriberCount}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-gray-200">
+              <div className="font-medium">Последний подписчик</div>
+              <div className="mt-1 text-xs text-gray-500">
+                {latestSubscriber
+                  ? `${latestSubscriber.email} · ${latestSubscriber.source}`
+                  : "Подписок пока нет"}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-2xl font-semibold text-white">
+              Топ public-публикаций
             </h2>
 
             <Link
